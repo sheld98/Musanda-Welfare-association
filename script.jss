@@ -1,39 +1,66 @@
-// Function to handle login requests
-function handleLogin(e) {
-  var params = JSON.parse(e.postData.contents);
-  var username = params.username;
-  var password = params.password;
+// Replace with your Google Apps Script Web App URL
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPtrIIAyJuc0Jw36St-DaeHfabJNfCX7KjcTMHUkAMM2Enn2xwOnDnDzlkzPYwB94/exec";
 
-  // Define the correct credentials (you can change these)
-  var correctUsername = "admin";
-  var correctPassword = "password123";
+// DOM Elements
+const postsContainer = document.getElementById('posts');
 
-  if (username === correctUsername && password === correctPassword) {
-    return ContentService.createTextOutput("success").setMimeType(ContentService.MimeType.TEXT);
-  } else {
-    return ContentService.createTextOutput("failure").setMimeType(ContentService.MimeType.TEXT);
-  }
+// Fetch posts when the page loads
+fetchPosts();
+
+// Submit Post Functionality
+function submitPost() {
+  const name = document.getElementById('name').value;
+  const email = document.getElementById('email').value;
+  const message = document.getElementById('message').value;
+
+  const formData = { name, email, message };
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify(formData),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.status === "success") {
+        alert("Data submitted successfully!");
+        fetchPosts(); // Refresh posts after submission
+      } else {
+        alert("Error submitting data: " + data.message);
+      }
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
 }
 
-// Existing doPost function
-function doPost(e) {
-  try {
-    var formData = JSON.parse(e.postData.contents);
+// Fetch Posts Functionality
+function fetchPosts() {
+  fetch(SCRIPT_URL)
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.status === "success") {
+        displayPosts(data.data);
+      } else {
+        console.error("Error fetching posts:", data.message);
+      }
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
+}
 
-    if (!formData.name || !formData.email || !formData.message) {
-      return ContentService.createTextOutput("Error: Missing required fields (name, email, message).")
-        .setMimeType(ContentService.MimeType.TEXT);
-    }
-
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    sheet.appendRow([new Date(), formData.name, formData.email, formData.message]);
-
-    return ContentService.createTextOutput("Data submitted successfully.")
-      .setMimeType(ContentService.MimeType.TEXT);
-
-  } catch (error) {
-    Logger.log("Error in doPost: " + error.message);
-    return ContentService.createTextOutput("Error: " + error.message)
-      .setMimeType(ContentService.MimeType.TEXT);
-  }
+// Display Posts Functionality
+function displayPosts(posts) {
+  postsContainer.innerHTML = '';
+  posts.forEach((post) => {
+    const postElement = document.createElement('div');
+    postElement.className = 'post';
+    postElement.innerHTML = `
+      <p><strong>Name:</strong> ${post[1]}</p>
+      <p><strong>Email:</strong> ${post[2]}</p>
+      <p><strong>Message:</strong> ${post[3]}</p>
+      <p><small>${new Date(post[0]).toLocaleString()}</small></p>
+    `;
+    postsContainer.appendChild(postElement);
+  });
 }
